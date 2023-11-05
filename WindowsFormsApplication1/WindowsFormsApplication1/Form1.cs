@@ -18,9 +18,13 @@ namespace WindowsFormsApplication1
 
     public partial class Form1 : Form
     {
+        [DllImport("kernel32.dll")] 
+        public static extern bool AllocConsole();
+
         public Form1()
         {
             InitializeComponent();
+            AllocConsole();
         }
 
         private async void button1_Click(object sender, EventArgs e)
@@ -176,6 +180,7 @@ namespace WindowsFormsApplication1
             this.nickname.Text = "Player";
             this.password.Text = Guid.NewGuid().ToString();
             this.serveraddr.Text = "127.0.0.1:7777";
+            //this.serveraddr.Text = "49.235.129.40:54321";
         }
 
         private void tabPage1_Click(object sender, EventArgs e)

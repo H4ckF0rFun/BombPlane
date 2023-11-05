@@ -128,14 +128,14 @@ class Player:
     
     def is_attack(self,x,y):
         if x < 0 or x >= 10:
-            return (1,"index out of range")
+            return (1,"index out of range (%d,%d)" % (x,y),0)
         
         if y < 0 or y >= 10:
-            return (1,"index out of range")
+            return (1,"index out of range (%d,%d)" % (x,y),0)
         
         idx = x + y * 10
         if idx in self.attack_pos:
-            return (2,"Invalid Position!")
+            return (2,"Invalid Position! (%d,%d) idx: %d"%(x,y,idx),0)
         
         value = self.board[y][x]
         
@@ -257,11 +257,11 @@ class GameManager:
             elif game.state == GAME_START_GUESS:
                 ###
                 if game.player_0.password == password:
-                    if game.turn == 0 and game.player_0.decide_end_time == -1:
+                    if game.turn%2 == 0 and game.player_0.decide_end_time == -1:
                         game.player_0.decide_end_time = int(time.time()) + 1 * 60
                             
                 elif game.player_1.password == password:
-                    if game.turn == 1 and game.player_1.decide_end_time == -1:
+                    if game.turn%2 == 1 and game.player_1.decide_end_time == -1:
                         game.player_1.decide_end_time = int(time.time()) + 1 * 60
                 ###
 
@@ -400,6 +400,8 @@ class GameManager:
         game.lock.release()
         return code,msg
     
+    #     not enough values to unpack (expected 3, got 2)
+    # {"result": -1, "error": "Invalid Info", "value": 0}
     def attack(self,session,nickname,password,x,y):
         self.lock.acquire()
         game = self.games.get(session)
@@ -418,7 +420,7 @@ class GameManager:
             
             player = None
             
-            if game.turn == 0:
+            if game.turn % 2 == 0:
                 if game.player_0.nickname != nickname or game.player_0.password != password:
                     msg = "It's not your turn!"
                     raise Exception("It's not your turn!")
@@ -426,7 +428,7 @@ class GameManager:
                 attacker = game.player_0
                 player = game.player_1
 
-            elif game.turn == 1: 
+            elif game.turn %2 == 1: 
                 if game.player_1.nickname != nickname or game.player_1.password != password:
                     msg = "It's not your turn!"
                     raise Exception("It's not your turn!")
@@ -438,7 +440,7 @@ class GameManager:
             
             if code == 0:
                 attacker.decide_end_time = -1
-                game.turn = 1 - game.turn   
+                game.turn += 1
                 
         except Exception as e:
             print(e)

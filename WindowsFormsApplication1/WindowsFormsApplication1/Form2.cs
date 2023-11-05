@@ -21,9 +21,14 @@ namespace WindowsFormsApplication1
     {
         const int BLOCK_WIDTH = 40;
 
+
+        private int AIProcessed;
         private int last_hover_x;
         private int last_hover_y;
         private int last_rotate;
+        private int last_turn;
+
+        private bool drawing;
 
         private int put_or_remove;
         private int left_plane;
@@ -63,7 +68,10 @@ namespace WindowsFormsApplication1
         {
             InitializeComponent();
 
+            this.last_turn = -1;
 
+            this.AIProcessed = 0;
+            this.drawing = false;
             this.ai = "";
             this.nickname = _nickname;
             this.session = _session;
@@ -213,7 +221,7 @@ namespace WindowsFormsApplication1
         }
         private void OnSelectPlanePos(object sender, EventArgs e)
         {
-            if(this.last_rotate == -1)      //plane is placed.
+            if(this.last_rotate == -1 || this.drawing == true)      //plane is placed.
             {
                 return;
             }
@@ -246,6 +254,7 @@ namespace WindowsFormsApplication1
                 if (this.last_rotate != -1 && last_hover_x != -1 && last_hover_y != -1)      //plane is placed.
                 {
                     //redraw.
+                    this.drawing = true;
 
                     //check place is valid?
                     int[][] valid = calc_valid(last_hover_x, last_hover_y, last_rotate % 4);
@@ -260,7 +269,11 @@ namespace WindowsFormsApplication1
                     }
                     //invalid place.
                     if (valid_cnt != 10)
+                    {
+                        this.drawing = false;
                         return;
+                    }
+                        
 
                     /*
                      *  x : last_hover_x
@@ -298,7 +311,11 @@ namespace WindowsFormsApplication1
                         int result = response.result;
 
                         if (result != 0)
+                        {
+                            this.drawing = false;
                             return;
+                        }
+                            
 
                     }
                     catch (HttpRequestException)
@@ -306,6 +323,7 @@ namespace WindowsFormsApplication1
                         string message = "Couldn't connect to server!";
                         string title = "Tips";
                         MessageBox.Show(message, title);
+                        this.drawing = false;
                         return;
                     }
 
@@ -345,7 +363,7 @@ namespace WindowsFormsApplication1
                     last_hover_y = -1;
 
                     this.left_plane -= 1;
-
+                    this.drawing = false;
                     return;
                 }
             }
@@ -597,9 +615,10 @@ namespace WindowsFormsApplication1
         //AI打飞机
         private async void AttackByAI(int x,int y)
         {
-
             if (x < 0 || x >= 10 || y < 0 || y >= 10)
+            {
                 return;
+            }
 
             Button btn = (Button)play_board[y][x];
 
@@ -635,11 +654,11 @@ namespace WindowsFormsApplication1
 
             int result = response.result;
             int value = response.value;
+            
             if (result != 0)
             {
                 string err = response.error;
-                string title = "Error";
-                MessageBox.Show(err, title);
+                MessageBox.Show(err, "Error");
                 return;
             }
 
@@ -667,7 +686,7 @@ namespace WindowsFormsApplication1
                     }
                     break;
             }
-            this.Attack.Enabled = false;
+            Console.WriteLine("ok");
         }
 
         //手动打飞机
@@ -749,7 +768,6 @@ namespace WindowsFormsApplication1
                     }
                     break;
             }
-            this.Attack.Enabled = false;
         }
 
         //飞机标记. 飞机头标记.
@@ -833,15 +851,38 @@ namespace WindowsFormsApplication1
                 your_left_time.Text = p0_left_time.ToString() + "S";
             }
 
-            if(state == 2 && turn == this.who)
+            if(state == 2)
             {
-                this.Attack.Enabled = true;
-                if (this.ai.Length != 0)
+                if(this.last_turn != turn)
                 {
-                    int[] coor = getSolution(getPlayBoard(), this.ai);
-                    if (coor[0] != -1 && coor[1] != -1)
-                        AttackByAI(coor[0], coor[1]);
-                } 
+                    //update data.
+                    this.Attack.Enabled = false;
+                    AIProcessed = 0;
+                }
+
+                this.last_turn = turn;
+
+                if((turn & 1) == this.who)
+                {
+                    if (this.Attack.Enabled == false)
+                    {
+                        this.Attack.Enabled = true;
+                        Console.WriteLine(getPlayBoard());                        
+                    }
+
+                    if (AIProcessed == 0 && this.ai.Length != 0)
+                    {
+                        AIProcessed = 1;
+                        //只调用一次
+                        Console.WriteLine("begin\n");
+                        int[] coor = getSolution(getPlayBoard(), this.ai);
+                        if (coor[0] != -1 && coor[1] != -1)
+                        {
+                            AttackByAI(coor[0], coor[1]);
+                        };
+                        Console.WriteLine("End\n");
+                    }
+                }
             }
 
             //更新自己被击中的飞机.
@@ -1126,8 +1167,9 @@ namespace WindowsFormsApplication1
         //放置飞机按钮
         private void Plane_Click(object sender, EventArgs e)
         {
-            if (this.left_plane == 0)
+            if (this.left_plane == 0 || this.drawing == true)
                 return;
+
 
             this.last_hover_x = -1;
             this.last_hover_y = -1;
@@ -1216,9 +1258,10 @@ namespace WindowsFormsApplication1
                 {
                     return;
                 }
-
+                
                 this.ai = openFileDialog.FileName;
                 this.LoadAI.Text = "UnloadAI";
+                this.AIProcessed = 0;
             }
         } 
 
@@ -1240,7 +1283,7 @@ namespace WindowsFormsApplication1
                 process.StartInfo.UseShellExecute = false;
                 process.StartInfo.RedirectStandardOutput = true;
                 process.StartInfo.RedirectStandardError = true;
-
+                process.StartInfo.RedirectStandardInput = true;
                 process.Start();
 
                 process.StandardInput.Write(board.ToCharArray());
@@ -1249,13 +1292,14 @@ namespace WindowsFormsApplication1
 
                 ans[0] = Int32.Parse(ans_x);
                 ans[1] = Int32.Parse(ans_y);
+
+                Console.WriteLine("Policy -> X:" + ans[0].ToString() + "  Y:" + ans[1].ToString());
+
             }
             catch(Exception)
             {
                 ans[0] = -1;
                 ans[1] = -1;
-
-                MessageBox.Show("Error", "Get policy from ai failed!");
             }
             return ans;
         }
