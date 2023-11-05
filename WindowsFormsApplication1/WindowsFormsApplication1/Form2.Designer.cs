@@ -56,6 +56,7 @@
             this.BodyFlag = new System.Windows.Forms.Button();
             this.RmFlag = new System.Windows.Forms.Button();
             this.HeadFlag = new System.Windows.Forms.Button();
+            this.LoadAI = new System.Windows.Forms.Button();
             this.groupBox1.SuspendLayout();
             this.guess_board.SuspendLayout();
             this.Player0Group.SuspendLayout();
@@ -344,11 +345,23 @@
             this.HeadFlag.Visible = false;
             this.HeadFlag.Click += new System.EventHandler(this.HeadFlag_Click);
             // 
+            // LoadAI
+            // 
+            this.LoadAI.Location = new System.Drawing.Point(1144, 250);
+            this.LoadAI.Name = "LoadAI";
+            this.LoadAI.Size = new System.Drawing.Size(135, 33);
+            this.LoadAI.TabIndex = 15;
+            this.LoadAI.Text = "LoadAI";
+            this.LoadAI.UseVisualStyleBackColor = true;
+            this.LoadAI.Visible = false;
+            this.LoadAI.Click += new System.EventHandler(this.button1_Click);
+            // 
             // State
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1291, 611);
+            this.Controls.Add(this.LoadAI);
             this.Controls.Add(this.HeadFlag);
             this.Controls.Add(this.RmFlag);
             this.Controls.Add(this.BodyFlag);
@@ -410,5 +423,6 @@
         private System.Windows.Forms.Button BodyFlag;
         private System.Windows.Forms.Button RmFlag;
         private System.Windows.Forms.Button HeadFlag;
+        private System.Windows.Forms.Button LoadAI;
     }
 }

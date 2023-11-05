@@ -135,7 +135,7 @@ class Player:
         
         idx = x + y * 10
         if idx in self.attack_pos:
-            return (2,"invalid_pos")
+            return (2,"Invalid Position!")
         
         value = self.board[y][x]
         
@@ -337,17 +337,20 @@ class GameManager:
         
         try:
             if game.state != GAME_PLACE_PLANE:
+                msg = "Not matched state"
                 raise Exception("Not matched state")
             
             if game.player_1.nickname == nickname and game.player_1.password == password:
                 if game.player_1.putPlane(x,y,plane_idx) != 0:
+                    msg = "Invalid Position"
                     raise Exception("Invalid Position")
                 
                 code = 0
                 msg = "success"
             
-            if game.player_0.nickname == nickname and game.player_0.password == password:
+            elif game.player_0.nickname == nickname and game.player_0.password == password:
                 if game.player_0.putPlane(x,y,plane_idx) != 0:
+                    msg = "Invalid Position"
                     raise Exception("Invalid Position")
 
                 code = 0
@@ -373,16 +376,19 @@ class GameManager:
         game.lock.acquire()
         try:
             if game.state != GAME_PLACE_PLANE:
+                msg = "Not matched state"
                 raise Exception("Not matched state")
             
             if game.player_1.nickname == nickname and game.player_1.password == password:
                 if game.player_1.remove_plane(x,y,plane_idx) != 0:
+                    msg = "Invalid Position"
                     raise Exception("Invalid Position")
                 code = 0
                 msg = "success"
                 
             elif game.player_0.nickname == nickname and game.player_0.password == password:
                 if game.player_0.remove_plane(x,y,plane_idx) != 0:
+                    msg = "Invalid Position"
                     raise Exception("Invalid Position")
                 
                 code = 0
@@ -407,20 +413,23 @@ class GameManager:
         game.lock.acquire()
         try:
             if game.state != GAME_START_GUESS:
+                msg = "Not matched state"
                 raise Exception("Not matched state")
             
             player = None
             
             if game.turn == 0:
                 if game.player_0.nickname != nickname or game.player_0.password != password:
-                    raise Exception("Invalid User Info")
+                    msg = "It's not your turn!"
+                    raise Exception("It's not your turn!")
                 
                 attacker = game.player_0
                 player = game.player_1
 
             elif game.turn == 1: 
                 if game.player_1.nickname != nickname or game.player_1.password != password:
-                    raise Exception("Invalid User Info")
+                    msg = "It's not your turn!"
+                    raise Exception("It's not your turn!")
                 
                 attacker = game.player_1
                 player = game.player_0

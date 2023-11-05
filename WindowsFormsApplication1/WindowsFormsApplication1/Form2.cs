@@ -12,6 +12,7 @@ using System.Net.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Threading;
+using System.Diagnostics;
 
 namespace WindowsFormsApplication1
 {
@@ -31,7 +32,7 @@ namespace WindowsFormsApplication1
         private string password;
         private int who;
         private int inTimer;
-
+        private string ai;
         //
         const int SET_HEAD_FLAG = 1;
         const int SET_BODY_FLAG = 2;
@@ -62,6 +63,8 @@ namespace WindowsFormsApplication1
         {
             InitializeComponent();
 
+
+            this.ai = "";
             this.nickname = _nickname;
             this.session = _session;
             this.password = _password;
@@ -79,6 +82,7 @@ namespace WindowsFormsApplication1
             this.left_plane = 3;
 
             board_value = new int[10][];
+            
             for (int y = 0; y < 10; y++)
             {
                 board_value[y] = new int[10];
@@ -125,6 +129,7 @@ namespace WindowsFormsApplication1
         private int[][] calc_valid(int plane_x, int plane_y, int plane_idx)
         {
             int[][] valid = new int[10][];
+
             for (int i = 0; i < 10; i++)
             {
                 valid[i] = new int[10];
@@ -165,7 +170,8 @@ namespace WindowsFormsApplication1
 
             return valid;
         }
-        private void update(int last_x,int last_y,int last_r,
+
+        private void UpdateMyBoard(int last_x,int last_y,int last_r,
             int cur_x,int cur_y,int cur_r)
         {
             //当前有效 ^ 上一次有效 = 重叠部分
@@ -205,7 +211,7 @@ namespace WindowsFormsApplication1
             }
 
         }
-        private void on_select_pos(object sender, EventArgs e)
+        private void OnSelectPlanePos(object sender, EventArgs e)
         {
             if(this.last_rotate == -1)      //plane is placed.
             {
@@ -215,40 +221,24 @@ namespace WindowsFormsApplication1
             Button btn = (Button)sender;
             int y = btn.Top / BLOCK_WIDTH;
             int x = btn.Left / BLOCK_WIDTH;
-            
-            switch(this.last_rotate)
-            {
-                case 0:
-                    x -= 2;
-                    break;
-                case 2:
-                    x -= 2;
-                    y -= 3;
-                    break;
+            int[] coor = GetPlaneCoorByHeadCoor(x, y, this.last_rotate);
 
-                case 1:
-                    x -= 3;
-                    y -= 2;
-                    break;
-                case 3:
-                    y -= 2;
-                    break;
-            }
+            x = coor[0];
+            y = coor[1];
 
-            if(x == last_hover_x && y == last_hover_y)
+            if (x == last_hover_x && y == last_hover_y)
             {
                 return;
             }
 
-            update(last_hover_x, last_hover_y, last_rotate, x, y, last_rotate);
+            UpdateMyBoard(last_hover_x, last_hover_y, last_rotate, x, y, last_rotate);
 
             //
             last_hover_x = x;
             last_hover_y = y;
-
- 
             return;
         }
+
         private async void on_left_click(object sender, MouseEventArgs e)
         {
             if (this.put_or_remove == 0)
@@ -393,26 +383,10 @@ namespace WindowsFormsApplication1
                 int height = Planes[plane_idx].Length;
                 int width = Planes[plane_idx][0].Length;
 
-                switch(plane_idx)
-                {
-                    case 0:
-                        x -= 2;
-                        break;
-                    case 2:
-                        x -= 2;
-                        y -= 3;
-                        break;
+                int []coor = GetPlaneCoorByHeadCoor(x, y, plane_idx);
+                x = coor[0];
+                y = coor[1];
 
-                    case 1:
-                        x -= 3;
-                        y -= 2;
-                        break;
-                    case 3:
-                        y -= 2;
-                        break;
-
-                }
-                //plane_idx x,y,
                 try
                 {
                     string url = "http://" + this.server_addr + "/api/removeplane";
@@ -468,9 +442,32 @@ namespace WindowsFormsApplication1
                 }
 
                 this.left_plane += 1;
-
             }
         }
+
+        private int[] GetPlaneCoorByHeadCoor(int x,int y,int idx)
+        {
+            switch (idx)
+            {
+                case 0:
+                    x -= 2;
+                    break;
+                case 2:
+                    x -= 2;
+                    y -= 3;
+                    break;
+
+                case 1:
+                    x -= 3;
+                    y -= 2;
+                    break;
+                case 3:
+                    y -= 2;
+                    break;
+            }
+            return new int [2] {x,y};
+        }
+
 
         private void on_right_click(object sender, MouseEventArgs e)
         {
@@ -479,29 +476,17 @@ namespace WindowsFormsApplication1
                 Button btn = (Button)sender;
                 int y = btn.Top / BLOCK_WIDTH;
                 int x = btn.Left / BLOCK_WIDTH;
-                int new_rotate = (this.last_rotate + 1) % 4;
+                int idx = (this.last_rotate + 1) % 4;
+                int[] coor;
 
-                switch (new_rotate)
-                {
-                    case 0:
-                        x -= 2;
-                        break;
-                    case 2:
-                        x -= 2;
-                        y -= 3;
-                        break;
+                coor = GetPlaneCoorByHeadCoor(x, y, idx);
 
-                    case 1:
-                        x -= 3;
-                        y -= 2;
-                        break;
-                    case 3:
-                        y -= 2;
-                        break;
-                }
+                x = coor[0];
+                y = coor[1];
 
-                update(last_hover_x,last_hover_y,last_rotate,x,y,new_rotate);
-                last_rotate = new_rotate;
+                UpdateMyBoard(last_hover_x, last_hover_y, last_rotate, x, y, idx);
+
+                last_rotate = idx;
                 last_hover_x = x;
                 last_hover_y = y;
             }
@@ -512,7 +497,7 @@ namespace WindowsFormsApplication1
             }
         }
 
-        private void on_mouse_click(object sender, MouseEventArgs e)
+        private void OnMyBoardClicked(object sender, MouseEventArgs e)
         {
             switch(e.Button)
             {
@@ -563,14 +548,16 @@ namespace WindowsFormsApplication1
                         play_board[y][x].Click += this.OnPlayBoardClicked;
                     }
                 }
-                //
+
+                //显示按钮.
                 this.Attack.Visible = true;
                 this.BodyFlag.Visible = true;
                 this.HeadFlag.Visible = true;
                 this.RmFlag.Visible = true;
+                this.LoadAI.Visible = true;
 
+                //
                 this.Attack.Enabled = false;
-
             }
             else if (newState == 3)
 
@@ -580,6 +567,7 @@ namespace WindowsFormsApplication1
                 this.BodyFlag.Enabled = false;
                 this.HeadFlag.Enabled = false;
                 this.RmFlag.Enabled = false;
+                
             }
         }
 
@@ -605,7 +593,84 @@ namespace WindowsFormsApplication1
             }
         }
 
-        //左键打飞机
+
+        //AI打飞机
+        private async void AttackByAI(int x,int y)
+        {
+
+            if (x < 0 || x >= 10 || y < 0 || y >= 10)
+                return;
+
+            Button btn = (Button)play_board[y][x];
+
+            string url = "http://" + this.server_addr + "/api/attack";
+            string payload = JsonConvert.SerializeObject(new
+            {
+                session = session,
+                nickname = nickname,
+                password = password,
+                x = x,
+                y = y
+            });
+
+            HttpClient client = new HttpClient();
+            HttpResponseMessage res;
+            dynamic response = null;
+            try
+            {
+                res = await client.PostAsync(url, new StringContent(payload));
+                string StatuCode = res.StatusCode.ToString();
+                if (StatuCode != "OK")
+                {
+                    return;
+                }
+
+                string json = await res.Content.ReadAsStringAsync();
+                response = JObject.Parse(json);
+            }
+            catch (HttpRequestException)
+            {
+                return;
+            }
+
+            int result = response.result;
+            int value = response.value;
+            if (result != 0)
+            {
+                string err = response.error;
+                string title = "Error";
+                MessageBox.Show(err, title);
+                return;
+            }
+
+            switch (value)
+            {
+                case 0:
+                    if (btn.BackColor != Color.White)
+                    {
+                        btn.BackColor = Color.White;
+                        btn.Text = "";
+                    }
+                    break;
+                case 1:
+                    if (btn.BackColor != Color.Red && btn.BackColor != Color.Orange)
+                    {
+                        btn.BackColor = Color.Orange;
+                        btn.Text = "";
+                    }
+                    break;
+                case 2:
+                    if (btn.BackColor != Color.Red)
+                    {
+                        btn.BackColor = Color.Red;
+                        btn.Text = "";
+                    }
+                    break;
+            }
+            this.Attack.Enabled = false;
+        }
+
+        //手动打飞机
         private async void AttackPlane(object sender, EventArgs e)
         {
             Button btn = (Button)sender;
@@ -719,6 +784,193 @@ namespace WindowsFormsApplication1
             btn.Text = "";
         }
 
+        private string getPlayBoard()
+        {
+            string board = "";
+            for (int i = 0; i < 100; i++)
+            {
+                if (this.play_board[i / 10][i % 10].BackColor == Color.White)
+                    board += " ";
+                else if (this.play_board[i / 10][i % 10].BackColor == Color.Red)
+                    board += "H";
+                else if (this.play_board[i / 10][i % 10].BackColor == Color.Orange)
+                    board += "B";
+                else
+                    board += "U";
+            }
+            return board;
+        }
+
+        //处理打飞机阶段接收到的数据包。
+        private void OnGuessQueryInfo(
+            int state,
+            string player_0,
+            string player_1,
+            int p0_planes,
+            int p1_planes,
+            int turn,
+            int win,
+            int[] pos,
+            string p0_left_time,
+            string p1_left_time
+            )
+        {
+
+            //更新剩余时间.
+            if (this.who == 0)
+            {
+                Player_0_alive_planes.Text = p0_planes.ToString();
+                Player_1_alive_planes.Text = p1_planes.ToString();
+
+                my_left_time.Text = p0_left_time.ToString() + "S";
+                your_left_time.Text = p1_left_time.ToString() + "S";
+            }
+            else
+            {
+                Player_0_alive_planes.Text = p1_planes.ToString();
+                Player_1_alive_planes.Text = p0_planes.ToString();
+                my_left_time.Text = p1_left_time.ToString() + "S";
+                your_left_time.Text = p0_left_time.ToString() + "S";
+            }
+
+            if(state == 2 && turn == this.who)
+            {
+                this.Attack.Enabled = true;
+                if (this.ai.Length != 0)
+                {
+                    int[] coor = getSolution(getPlayBoard(), this.ai);
+                    if (coor[0] != -1 && coor[1] != -1)
+                        AttackByAI(coor[0], coor[1]);
+                } 
+            }
+
+            //更新自己被击中的飞机.
+            for (int i = 0; i < pos.Length; i++)
+            {
+                int idx = pos[i];
+                int x = idx % 10;
+                int y = idx / 10;
+                int plane_idx = 0;
+                int[] coor;
+
+                if (x < 0 || x >= 10 || y < 0 || y >= 10)
+                    continue;
+
+                switch (board_value[y][x])
+                {
+                    case 0:
+                        if (board_me[y][x].BackColor != Color.White)
+                            board_me[y][x].BackColor = Color.White;
+                        break;
+                    case 1:
+                        if (board_me[y][x].BackColor != Color.Orange &&
+                            board_me[y][x].BackColor != Color.Red)
+                            board_me[y][x].BackColor = Color.Orange;
+                        break;
+                    default:
+                        //被打头了.
+                        //将整个飞机都变成红色.
+                        plane_idx = board_value[y][x] >> 16;
+                            
+                        //以及染成红色了.
+                        if (board_me[y][x].BackColor == Color.Red)
+                            break;
+
+                        board_me[y][x].BackColor = Color.Red;
+
+                        coor = GetPlaneCoorByHeadCoor(x, y, plane_idx);
+                        x = coor[0];
+                        y = coor[1];
+
+                        int width = Planes[plane_idx][0].Length;
+                        int height = Planes[plane_idx].Length;
+
+                        for (int dx = 0; dx < width; dx++)
+                        {
+                            for (int dy = 0; dy < height; dy++)
+                            {
+                                if (Planes[plane_idx][dy][dx] != PLANE_NONE)
+                                {
+                                    board_me[y + dy][x + dx].BackColor = Color.Red;
+                                }
+                            }
+                        }
+                        break;
+                }
+                
+            }
+
+            if (state != 3)
+                return;
+
+            timer.Stop();
+            if (this.who != win)
+            {
+                string message = "You lose!";
+                string title = "Game Over";
+                MessageBox.Show(message, title);
+            }
+            else
+            {
+                string message = "You win!";
+                string title = "Game Over";
+                MessageBox.Show(message, title);
+            }
+        }
+
+        //处理放置飞机状态接收到的数据包.
+        private void OnPutPlaneQueryInfo(
+            string player_0,
+            string player_1,
+            int p0_planes,
+            int p1_planes,
+            int turn,
+            int win,
+            int[] pos,
+            string p0_left_time,
+            string p1_left_time
+            )
+        {
+            //双方都加入了.
+            if (this.who == 0)      //who ==0 ,create by me.
+            {
+                this.my_nickname.Text = player_0;
+                this.your_nickname.Text = player_1;
+                this.my_left_time.Text = p0_left_time.ToString() + "S";
+                this.your_left_time.Text = p1_left_time.ToString() + "S";
+
+                //I am player_0
+                if (p0_planes != -1)
+                    Player_0_alive_planes.Text = p0_planes.ToString();
+                else
+                    Player_0_alive_planes.Text = "Confirmed";
+
+                if (p1_planes != -1)
+                    Player_1_alive_planes.Text = p1_planes.ToString();
+                else
+                    Player_1_alive_planes.Text = "Confirmed";
+
+            }
+            else
+            {
+                this.my_nickname.Text = player_1;
+                this.your_nickname.Text = player_0;
+                this.my_left_time.Text = p1_left_time.ToString() + "S";
+                this.your_left_time.Text = p0_left_time.ToString() + "S";
+
+                //I am player_1
+                if (p1_planes != -1)
+                    Player_0_alive_planes.Text = p1_planes.ToString();
+                else
+                    Player_0_alive_planes.Text = "Confirmed";
+
+                if (p0_planes != -1)
+                    Player_1_alive_planes.Text = p0_planes.ToString();
+                else
+                    Player_1_alive_planes.Text = "Confirmed";
+            }
+        }
+
 
         private async void OnTimer(object sender, EventArgs e)
         {
@@ -729,12 +981,14 @@ namespace WindowsFormsApplication1
             }
 
             string url = "http://" + this.server_addr + "/api/queryinfo";
+
             string payload = JsonConvert.SerializeObject(new
             {
                 session = session,
                 nickname = nickname,
                 password = password
             });
+
             HttpClient client = new HttpClient();
             HttpResponseMessage res;
             dynamic response = null;
@@ -785,182 +1039,45 @@ namespace WindowsFormsApplication1
                     break;
 
                 case  1:        //放置飞机
-                    do
+                    if (this.last_state != state)
                     {
-                        if (this.last_state != state)
-                            updateState(state);
-
-                        //双方都加入了.
-                        if (this.who == 0)      //who ==0 ,create by me.
-                        {
-                            this.my_nickname.Text = player_0;
-                            this.your_nickname.Text = player_1;
-                            this.my_left_time.Text = p0_left_time.ToString() + "S";
-                            this.your_left_time.Text = p1_left_time.ToString() + "S";
-
-                            //I am player_0
-                            if (p0_planes != -1)
-                                Player_0_alive_planes.Text = p0_planes.ToString();
-                            else
-                                Player_0_alive_planes.Text = "Confirmed";
-
-                            if (p1_planes != -1)
-                                Player_1_alive_planes.Text = p1_planes.ToString();
-                            else
-                                Player_1_alive_planes.Text = "Confirmed";
-
-                        }
-                        else
-                        {
-                            this.my_nickname.Text = player_1;
-                            this.your_nickname.Text = player_0;
-                            this.my_left_time.Text = p1_left_time.ToString() + "S";
-                            this.your_left_time.Text = p0_left_time.ToString() + "S";
-
-                            //I am player_1
-                            if (p1_planes != -1)
-                                Player_0_alive_planes.Text = p1_planes.ToString();
-                            else
-                                Player_0_alive_planes.Text = "Confirmed";
-
-                            if (p0_planes != -1)
-                                Player_1_alive_planes.Text = p0_planes.ToString();
-                            else
-                                Player_1_alive_planes.Text = "Confirmed";
-                        }
-
-                        this.last_state = state;
-                    } while (false);
+                        updateState(state);
+                    }
+                    OnPutPlaneQueryInfo(
+                        player_0, 
+                        player_1, 
+                        p0_planes, 
+                        p1_planes, 
+                        turn, 
+                        win, 
+                        pos, 
+                        p0_left_time, 
+                        p1_left_time);
+                    
+                    this.last_state = state;
                     break;
 
                 case 2:     //游戏进行中.
                 case 3:
-                    do
-                    {
-                        if (this.last_state != state)
+                    if (this.last_state != state)
                             updateState(state);
 
-                        if (this.who == 0)
-                        {
-                            Player_0_alive_planes.Text = p0_planes.ToString();
-                            Player_1_alive_planes.Text = p1_planes.ToString();
-
-                            this.my_left_time.Text = p0_left_time.ToString() + "S";
-                            this.your_left_time.Text = p1_left_time.ToString() + "S";
-
-                            if (state == 2 && turn == 0)
-                                this.Attack.Enabled = true;
-                        }
-                        else
-                        {
-                            Player_0_alive_planes.Text = p1_planes.ToString();
-                            Player_1_alive_planes.Text = p0_planes.ToString();
-
-                            this.my_left_time.Text = p1_left_time.ToString() + "S";
-                            this.your_left_time.Text = p0_left_time.ToString() + "S";
-
-                            if (state == 2 && turn == 1)
-                                this.Attack.Enabled = true;
-                        }
-
-                        //更新自己被击中的飞机.
-                        for (int i = 0; i < pos.Length; i++)
-                        {
-                            int idx = pos[i];
-                            int x = idx % 10;
-                            int y = idx / 10;
-
-                            if(x >=0 && x < 10 && y >= 0 && y < 10)
-                            {
-                                switch(board_value[y][x])
-                                {
-                                    case 0:
-                                        board_me[y][x].BackColor = Color.White;
-                                        break;
-                                    case 1:
-                                        if (board_me[y][x].BackColor != Color.Orange &&
-                                            board_me[y][x].BackColor != Color.Red)
-                                        board_me[y][x].BackColor = Color.Orange;
-                                        break;
-                                    default:
-                                        //被打头了.
-                                        //将整个飞机都变成红色.
-                                        do
-                                        {
-                                            int plane_idx = board_value[y][x] >> 16;
-                                            int start_x = x;
-                                            int start_y = y;
-
-                                            if (board_me[y][x].BackColor == Color.Red)
-                                                break;
-
-                                            board_me[y][x].BackColor = Color.Red;
-                                                
-                                            switch(plane_idx)
-                                            {
-                                                case 0:
-                                                    start_x = x - 2; 
-                                                    break;
-                                                case 1:
-                                                    start_x = x - 3;
-                                                    start_y = y - 2;
-                                                    break;
-                                                case 2:
-                                                    start_x = x - 2;
-                                                    start_y = y - 3;
-                                                    break;
-                                                case 3:
-                                                    start_y = y - 2;
-                                                    break;
-                                            }
-
-
-                                            int width = Planes[plane_idx][0].Length;
-                                            int height = Planes[plane_idx].Length;
-
-                                            for(int dx = 0;dx < width;dx++)
-                                            {
-                                                for(int dy = 0;dy < height;dy++)
-                                                {
-                                                    int block_x = start_x + dx;
-                                                    int block_y = start_y + dy;
-
-                                                    if(Planes[plane_idx][dy][dx] != PLANE_NONE)
-                                                    {
-                                                        board_me[block_y][block_x].BackColor = Color.Red;
-                                                    }
-                                                }
-                                            }
-                                                
-                                        } while (false);
-                                        break;
-                                }
-                            }
-                        }
-
-                        if(state == 3)
-                        {
-                            timer.Stop();
-                            if (this.who != win)
-                            {
-                                string message = "You lose!";
-                                string title = "Game Over";
-                                MessageBox.Show(message, title);
-                            }
-                            else
-                            {
-                                string message = "You win!";
-                                string title = "Game Over";
-                                MessageBox.Show(message, title);
-                            }
-                        }
-
+                        OnGuessQueryInfo(state,
+                            player_0, 
+                            player_1, 
+                            p0_planes, 
+                            p1_planes, 
+                            turn, win, 
+                            pos, 
+                            p0_left_time, 
+                            p1_left_time);
                         this.last_state = state;
-                    } while (false);
                     break;
             }
             Interlocked.Exchange(ref inTimer, 0);
         }
+
+
         private void Form2_Load(object sender, EventArgs e)
         {
             //
@@ -997,8 +1114,8 @@ namespace WindowsFormsApplication1
                     board_me[y][x].Height = BLOCK_WIDTH;
 
                     board_me[y][x].Show();
-                    board_me[y][x].MouseHover += new System.EventHandler(this.on_select_pos);
-                    board_me[y][x].MouseDown += new System.Windows.Forms.MouseEventHandler(this.on_mouse_click);
+                    board_me[y][x].MouseHover += new System.EventHandler(this.OnSelectPlanePos);
+                    board_me[y][x].MouseDown += new System.Windows.Forms.MouseEventHandler(this.OnMyBoardClicked);
                 }
             }
             this.panel1.Width = 10 * BLOCK_WIDTH;
@@ -1006,6 +1123,7 @@ namespace WindowsFormsApplication1
 
         }
 
+        //放置飞机按钮
         private void Plane_Click(object sender, EventArgs e)
         {
             if (this.left_plane == 0)
@@ -1017,11 +1135,13 @@ namespace WindowsFormsApplication1
             this.put_or_remove = 0;
         }
 
+        //删除飞机按钮
         private void Remove_Click(object sender, EventArgs e)
         {
             this.put_or_remove = 1;
         }
 
+        //确认按钮
         private async void Confirm_Click(object sender, EventArgs e)
         {
             try
@@ -1060,7 +1180,7 @@ namespace WindowsFormsApplication1
                 Plane.Enabled = false;
                 Remove.Enabled = false;
             }
-            catch (HttpRequestException)
+            catch (Exception)
             {
                 //do nothing...
             }
@@ -1080,6 +1200,64 @@ namespace WindowsFormsApplication1
         private void RemoveFlag_Click(object sender, EventArgs e)
         {
             this.guess_operation = REMOVE_FLAG;
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            if(this.ai.Length != 0)
+            {
+                this.ai = "";
+                this.LoadAI.Text = "LoadAI";
+            }
+            else
+            {
+                OpenFileDialog openFileDialog = new OpenFileDialog();
+                if (openFileDialog.ShowDialog() != DialogResult.OK)
+                {
+                    return;
+                }
+
+                this.ai = openFileDialog.FileName;
+                this.LoadAI.Text = "UnloadAI";
+            }
         } 
+
+
+        /*
+         *      : 空白
+         * H    : 飞机头
+         * B    : body
+         * U    : 未知的
+         */
+        private int [] getSolution(string board,string aiProgram)
+        {
+            int[] ans = new int[2];
+            try
+            {
+                Process process = new Process();
+                process.StartInfo.FileName = aiProgram;
+                process.StartInfo.Arguments = "";
+                process.StartInfo.UseShellExecute = false;
+                process.StartInfo.RedirectStandardOutput = true;
+                process.StartInfo.RedirectStandardError = true;
+
+                process.Start();
+
+                process.StandardInput.Write(board.ToCharArray());
+                string ans_x = process.StandardOutput.ReadLine();
+                string ans_y = process.StandardOutput.ReadLine();
+
+                ans[0] = Int32.Parse(ans_x);
+                ans[1] = Int32.Parse(ans_y);
+            }
+            catch(Exception)
+            {
+                ans[0] = -1;
+                ans[1] = -1;
+
+                MessageBox.Show("Error", "Get policy from ai failed!");
+            }
+            return ans;
+        }
     }
 }
