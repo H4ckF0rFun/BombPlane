@@ -375,12 +375,5 @@ def run(ip,port):
     httpd = HTTP_Server(address,HTTP_Handler)
     httpd.serve_forever()
 
-def async_run(ip='0.0.0.0',port=7777):
-    threading.Thread(None,run,'HTTP Srv',[ip,port]).start()
 
-
-
-if __name__ == '__main__':
-    async_run()
-    while True:
-        time.sleep(0x100)
+run("0.0.0.0",7777)

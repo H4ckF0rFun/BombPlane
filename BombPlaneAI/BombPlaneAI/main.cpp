@@ -145,6 +145,7 @@ void elimination(vector<node>& s, int x, int y, mapType m) {
 }
 
 int main() {
+	int key = 0;
 	vector<node> s = initNodes();
 	mapType nowMap[N + 1][N + 1] = { unknown };
 	int tot = 0;
@@ -170,7 +171,10 @@ int main() {
 	pos p;
 	while (s.size() > 1 && tot < P_NUM) {
 		p = getNextStep(s, nowMap);
-		if (y0 == x0)break;
+		if (y0 == x0) {
+			cout << p.second - 1 << '\n' << p.first - 1 << endl;
+			return 0;
+		}
 
 		int x, y, res;
 		do {
@@ -184,7 +188,21 @@ int main() {
 		else if (res == 1) nowMap[x][y] = mapType::plane, elimination(s, x, y, mapType::plane);
 		else if (res == 2) nowMap[x][y] = mapType::planeHead, elimination(s, x, y, mapType::planeHead), tot++;
 	}
-	cout << p.second - 1 << '\n' << p.first - 1 << endl;
+	if (tot < P_NUM) {
+		// 最后一步
+		node x = *s.begin();
+		for (int i = 1; i <= N; i++)
+			for (int j = 1; j <= N; j++)
+				if (x.map[i][j] == mapType::planeHead && nowMap[i][j] == unknown) {
+					cout << j - 1 << '\n' << i - 1;
+					nowMap[i][j] = mapType::planeHead;
+					tot++;
+					key = 1;
+					return 0;
+				}
+	}
+
+
 
 	return 0;
 }
